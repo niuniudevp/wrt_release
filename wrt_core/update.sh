@@ -101,7 +101,7 @@ stage_pre_install_source_fixes() {
     add_quickfile
     update_lucky
     fix_rust_compile_error
-    update_smartdns
+    # update_smartdns  # smartdns 已移除（编译报错），如需要可取消注释
     update_mwan3_fw4
     update_diskman
     update_dockerman
