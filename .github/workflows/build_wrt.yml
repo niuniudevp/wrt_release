@@ -14,14 +14,12 @@ on:
       libwrt_version:
         required: true
         description: >-
-          LibWrt 基版本：latest = 25.12-nss 分支最新代码；
-          或选择已发布的 release tag（v25.12.1 / v25.12.0）
-        type: choice
+          LibWrt 基版本：latest = 25.12-nss 分支最新代码；或填任意 LibWrt
+          release tag 名（如 v25.12.1 / v25.12.2，可省略 v 前缀）；或直接填
+          完整 40 位 commit SHA。LibWrt 发布新版本后无需改本文件，直接填
+          新 tag 名即可。
+        type: string
         default: latest
-        options:
-          - latest
-          - v25.12.1
-          - v25.12.0
       extra_luci_packages:
         required: false
         description: >-
@@ -91,22 +89,44 @@ jobs:
         env:
           LIBWRT_VERSION: ${{ inputs.libwrt_version }}
         run: |
+          set -e
           INI="wrt_core/compilecfg/jdcloud_ipq60xx_libwrt.ini"
-          # 复位为默认分支，再按选择写入锁定提交（pre_clone 会读取此文件）
+          REPO="https://github.com/LiBwrt/LibWrt.git"
+          # 复位为默认分支，再按输入写入锁定提交（pre_clone 会读取此文件）
           sed -i '/^COMMIT_HASH=/d' "$INI"
           sed -i 's|^REPO_BRANCH=.*|REPO_BRANCH=25.12-nss|' "$INI"
+
+          # 解析 tag 对应的 commit：优先 peeled 行（annotated tag），
+          # 否则直接取 tag 行（lightweight tag）
+          resolve_tag() {
+            local tag="$1" sha=""
+            sha=$(git ls-remote "$REPO" "refs/tags/${tag}^{}" | awk '{print $1}')
+            if [ -z "$sha" ]; then
+              sha=$(git ls-remote "$REPO" "refs/tags/${tag}" | awk '{print $1}')
+            fi
+            echo "$sha"
+          }
+
           case "$LIBWRT_VERSION" in
-            latest)
-              ;;
-            v25.12.1)
-              echo "COMMIT_HASH=ee98d40b69c373fcd537d8aff8a143aa9ee45ea5" >> "$INI"
-              ;;
-            v25.12.0)
-              echo "COMMIT_HASH=5037ef9d24c88ee25fef1023d2cc4a70b62adacd" >> "$INI"
+            latest|"")
+              echo "使用分支最新代码（25.12-nss）"
               ;;
             *)
-              echo "错误：不支持的 LibWrt 版本 $LIBWRT_VERSION" >&2
-              exit 1
+              if [[ "$LIBWRT_VERSION" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "使用指定提交：$LIBWRT_VERSION"
+                echo "COMMIT_HASH=$LIBWRT_VERSION" >> "$INI"
+              else
+                SHA=$(resolve_tag "$LIBWRT_VERSION")
+                if [ -z "$SHA" ] && [ "${LIBWRT_VERSION:0:1}" != "v" ]; then
+                  SHA=$(resolve_tag "v${LIBWRT_VERSION}")
+                fi
+                if [ -z "$SHA" ]; then
+                  echo "错误：在 $REPO 找不到版本/tag：$LIBWRT_VERSION" >&2
+                  exit 1
+                fi
+                echo "版本 $LIBWRT_VERSION -> 提交 $SHA"
+                echo "COMMIT_HASH=$SHA" >> "$INI"
+              fi
               ;;
           esac
           echo "===== $INI ====="
