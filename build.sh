@@ -375,18 +375,6 @@ run_container_build() {
         bash wrt_core/build_container.sh "$Dev" "$container_build_mod"
 }
 
-remove_uhttpd_dependency() {
-    local config_path="$BASE_PATH/../$BUILD_DIR/.config"
-    local luci_makefile_path="$BASE_PATH/../$BUILD_DIR/feeds/luci/collections/luci/Makefile"
-
-    if grep -q "CONFIG_PACKAGE_luci-app-quickfile=y" "$config_path"; then
-        if [ -f "$luci_makefile_path" ]; then
-            sed -i '/luci-light/d' "$luci_makefile_path"
-            echo "Removed uhttpd (luci-light) dependency as luci-app-quickfile (nginx) is enabled."
-        fi
-    fi
-}
-
 if [[ $Build_Mod == "container" ]]; then
     run_container_build ""
     exit 0
@@ -434,7 +422,6 @@ fi
 
 apply_config
 print_config_fragment_summary
-remove_uhttpd_dependency
 
 cd "$BASE_PATH/../$BUILD_DIR"
 make defconfig
