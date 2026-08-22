@@ -99,10 +99,10 @@ jobs:
             latest)
               ;;
             v25.12.1)
-              echo "COMMIT_HASH=ee98d40b69c3" >> "$INI"
+              echo "COMMIT_HASH=ee98d40b69c373fcd537d8aff8a143aa9ee45ea5" >> "$INI"
               ;;
             v25.12.0)
-              echo "COMMIT_HASH=5037ef9d24" >> "$INI"
+              echo "COMMIT_HASH=5037ef9d24c88ee25fef1023d2cc4a70b62adacd" >> "$INI"
               ;;
             *)
               echo "错误：不支持的 LibWrt 版本 $LIBWRT_VERSION" >&2

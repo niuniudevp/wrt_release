@@ -46,8 +46,10 @@ echo "$REPO_URL/$REPO_BRANCH/$COMMIT_HASH" >"$BASE_PATH/../repo_flag"
 git_retry clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" "$BUILD_DIR"
 
 # 锁定指定提交（可能不是 shallow 克隆的 HEAD，需单独 fetch）
+# 优先按完整 SHA 拉取；若失败（如写的是 tag 名），回退按 refs/tags/ 拉取
 if [[ $COMMIT_HASH != "none" ]]; then
-    git -C "$BUILD_DIR" fetch origin "$COMMIT_HASH" --depth 1
+    git -C "$BUILD_DIR" fetch origin "$COMMIT_HASH" --depth 1 \
+        || git -C "$BUILD_DIR" fetch origin "refs/tags/$COMMIT_HASH" --depth 1
     git -C "$BUILD_DIR" checkout --force "$COMMIT_HASH"
 fi
 

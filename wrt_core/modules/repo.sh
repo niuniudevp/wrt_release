@@ -11,10 +11,12 @@ clone_repo() {
     fi
 
     # COMMIT_HASH 指定的提交可能不是 shallow 克隆的 HEAD，需单独 fetch。
+    # 优先按完整 SHA 拉取；若失败（如写的是 tag 名），回退按 refs/tags/ 拉取。
     if [[ $COMMIT_HASH != "none" ]]; then
         echo "锁定提交: $COMMIT_HASH"
         (cd "$BUILD_DIR" \
-            && git_retry fetch origin "$COMMIT_HASH" --depth 1 \
+            && { git_retry fetch origin "$COMMIT_HASH" --depth 1 \
+                 || git_retry fetch origin "refs/tags/$COMMIT_HASH" --depth 1; } \
             && git_retry checkout --force "$COMMIT_HASH")
     fi
 }
