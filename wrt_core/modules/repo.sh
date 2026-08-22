@@ -9,6 +9,14 @@ clone_repo() {
             exit 1
         fi
     fi
+
+    # COMMIT_HASH 指定的提交可能不是 shallow 克隆的 HEAD，需单独 fetch。
+    if [[ $COMMIT_HASH != "none" ]]; then
+        echo "锁定提交: $COMMIT_HASH"
+        (cd "$BUILD_DIR" \
+            && git_retry fetch origin "$COMMIT_HASH" --depth 1 \
+            && git_retry checkout --force "$COMMIT_HASH")
+    fi
 }
 
 
@@ -37,10 +45,14 @@ clean_up() {
 
 reset_feeds_conf() {
     # 所有源码修正都基于远端分支或指定提交的干净状态。
-    git_retry reset --hard "origin/$REPO_BRANCH"
-    git_retry clean -f -d
-    git_retry pull
     if [[ $COMMIT_HASH != "none" ]]; then
-        git_retry checkout "$COMMIT_HASH"
+        # 锁定提交模式：不能 reset 到 origin/$REPO_BRANCH（可能已前进），
+        # 直接切回指定提交并清理。
+        git_retry checkout --force "$COMMIT_HASH"
+        git_retry clean -f -d
+    else
+        git_retry reset --hard "origin/$REPO_BRANCH"
+        git_retry clean -f -d
+        git_retry pull
     fi
 }
