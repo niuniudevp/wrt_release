@@ -117,6 +117,15 @@ update_ath11k_fw() {
             sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$ipq807_target"
         fi
 
+        # 设备默认包（image/Makefile 的 DEVICE_PACKAGES）中的裸 qcn9074
+        # 在 ddwrt 版 Makefile 替换后不存在，改指 qcn9074-ddwrt 包。
+        # （正则幂等：已存在的 qcn9074-ddwrt 不会被重复替换）
+        for img_mk in "$BUILD_DIR/target/linux/qualcommax/image/ipq60xx.mk" "$BUILD_DIR/target/linux/qualcommax/image/ipq807x.mk"; do
+            if [ -f "$img_mk" ]; then
+                sed -i 's/ath11k-firmware-qcn9074\([^-[:alnum:]_]\|$\)/ath11k-firmware-qcn9074-ddwrt\1/g' "$img_mk"
+            fi
+        done
+
         if [ -f "$ipq60_target" ] || [ -f "$ipq807_target" ]; then
             echo "已同步 ipq60xx/ipq807x ath11k 固件依赖为 ddwrt 包名。"
         fi
